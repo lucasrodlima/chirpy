@@ -7,6 +7,9 @@ import (
 )
 
 func handlerValidateChirp(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Add("Content-Type", "application/json")
+
 	type parameters struct {
 		Body string `json:"body"`
 	}
