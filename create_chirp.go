@@ -10,7 +10,6 @@ import (
 )
 
 func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Content-Type", "application/json")
 	type parameters struct {
 		UserId string `json:"user_id"`
 		Body   string `json:"body"`
