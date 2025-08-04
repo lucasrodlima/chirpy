@@ -2,18 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/lucasrodlima/chirpy/internal/database"
 	"net/http"
 )
 
 func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Email string `json:"email"`
-	}
-	type returnVals struct {
-		Id        string `json:"id"`
-		CreatedAt string `json:"created_at"`
-		UpdatedAt string `json:"updated_at"`
-		Email     string `json:"email"`
 	}
 
 	defer r.Body.Close()
@@ -33,10 +28,10 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	respondWithJson(w, http.StatusOK, returnVals{
-		Id:        newUser.ID.String(),
-		CreatedAt: newUser.CreatedAt.String(),
-		UpdatedAt: newUser.UpdatedAt.String(),
+	respondWithJson(w, http.StatusCreated, database.User{
+		ID:        newUser.ID,
+		CreatedAt: newUser.CreatedAt,
+		UpdatedAt: newUser.UpdatedAt,
 		Email:     newUser.Email,
 	})
 }
