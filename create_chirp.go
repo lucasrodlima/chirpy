@@ -4,14 +4,16 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+
+	"github.com/google/uuid"
+	"github.com/lucasrodlima/chirpy/internal/database"
 )
 
-func handlerValidateChirp(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-Type", "application/json")
 	type parameters struct {
-		Body string `json:"body"`
-	}
-	type returnVals struct {
-		CleanedBody string `json:"cleaned_body"`
+		UserId string `json:"user_id"`
+		Body   string `json:"body"`
 	}
 
 	defer r.Body.Close()
@@ -20,8 +22,7 @@ func handlerValidateChirp(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&params)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError,
-			"couldn't decode parameters", err)
-		return
+			"Error decoding parameters", err)
 	}
 
 	const maxChirpLength = 140
@@ -32,9 +33,19 @@ func handlerValidateChirp(w http.ResponseWriter, r *http.Request) {
 
 	cleanChirp := cleanMessage(params.Body)
 
-	respondWithJson(w, http.StatusOK, returnVals{
-		CleanedBody: cleanChirp,
+	userId := uuid.MustParse(params.UserId)
+
+	newChirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{
+		Body:   cleanChirp,
+		UserID: userId,
 	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError,
+			"Couldn't create new chirp, maybe non-existent user id", err)
+		return
+	}
+
+	respondWithJson(w, http.StatusCreated, newChirp)
 }
 
 func cleanMessage(msg string) string {
