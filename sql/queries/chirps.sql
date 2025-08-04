@@ -12,3 +12,7 @@ RETURNING *;
 -- name: ReadAllChirps :many
 SELECT * FROM chirps
 ORDER BY created_at;
+
+-- name: ReadChirp :one
+SELECT * FROM chirps
+WHERE id = $1;
