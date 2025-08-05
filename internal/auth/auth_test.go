@@ -1,8 +1,11 @@
 package auth
 
 import (
-	"golang.org/x/crypto/bcrypt"
 	"testing"
+	"time"
+
+	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func TestHashPassword(t *testing.T) {
@@ -26,5 +29,59 @@ func TestCheckPasswordHash(t *testing.T) {
 	err = CheckPasswordHash(password, string(hash))
 	if err != nil {
 		t.Errorf("CheckPasswordHash function not accurate")
+	}
+}
+
+func TestJWT(t *testing.T) {
+	userID := uuid.New()
+	secret := "my-super-secret-secret"
+	duration := time.Hour
+
+	token, err := MakeJWT(userID, secret, duration)
+	if err != nil {
+		t.Errorf("error in jwt generation: %v", err)
+	}
+
+	returnID, err := ValidateJWT(token, secret)
+	if err != nil {
+		t.Errorf("error validating jwt: %v", err)
+	}
+
+	if userID != returnID {
+		t.Errorf("jwt functions returning wrong id")
+	}
+}
+
+func TestJWTExpiration(t *testing.T) {
+	userID := uuid.New()
+	secret := "my-super-secret-secret"
+	duration := time.Second * 1
+
+	token, err := MakeJWT(userID, secret, duration)
+	if err != nil {
+		t.Errorf("error in jwt generation: %v", err)
+	}
+	time.Sleep(time.Second * 2)
+
+	_, err = ValidateJWT(token, secret)
+	if err == nil {
+		t.Errorf("jwt expiration not enforced")
+	}
+}
+
+func TestJWTWrongSecret(t *testing.T) {
+	userID := uuid.New()
+	secret := "correct-secret"
+	wrongSecret := "wrong-secret"
+	duration := time.Hour
+
+	token, err := MakeJWT(userID, secret, duration)
+	if err != nil {
+		t.Errorf("error in jwt generation: %v", err)
+	}
+
+	_, err = ValidateJWT(token, wrongSecret)
+	if err == nil {
+		t.Errorf("jwt should be invalid with wrong secret")
 	}
 }
