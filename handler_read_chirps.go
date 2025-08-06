@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"sort"
 
 	"github.com/google/uuid"
 )
@@ -29,6 +30,16 @@ func (cfg *apiConfig) handlerReadChirps(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Error retrieving chirps from database", err)
 		return
+	}
+
+	if q := r.URL.Query().Get("sort"); q == "desc" {
+		sort.Slice(chirps, func(i, j int) bool {
+			if chirps[i].CreatedAt.Compare(chirps[j].CreatedAt) == +1 {
+				return true
+			} else {
+				return false
+			}
+		})
 	}
 
 	respondWithJson(w, http.StatusOK, chirps)
