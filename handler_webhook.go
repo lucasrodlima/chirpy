@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/lucasrodlima/chirpy/internal/auth"
 )
 
 func (cfg *apiConfig) handlerWebhook(w http.ResponseWriter, r *http.Request) {
@@ -27,6 +28,16 @@ func (cfg *apiConfig) handlerWebhook(w http.ResponseWriter, r *http.Request) {
 	if params.Event != "user.upgraded" {
 		w.WriteHeader(http.StatusNoContent)
 		return
+	}
+
+	apiKey, err := auth.GetAPIKey(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "couldn't authenticate api key", err)
+		return
+	}
+
+	if apiKey != cfg.polkaKey {
+		respondWithError(w, http.StatusUnauthorized, "unauthorized api key", err)
 	}
 
 	err = cfg.db.UpgradeUserToRed(r.Context(), params.Data.UserID)
