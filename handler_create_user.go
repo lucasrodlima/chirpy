@@ -2,19 +2,10 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/google/uuid"
 	"github.com/lucasrodlima/chirpy/internal/auth"
 	"github.com/lucasrodlima/chirpy/internal/database"
 	"net/http"
-	"time"
 )
-
-type userResponse struct {
-	ID        uuid.UUID `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Email     string    `json:"email"`
-}
 
 func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
@@ -49,10 +40,11 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	respondWithJson(w, http.StatusCreated, userResponse{
-		ID:        newUser.ID,
-		CreatedAt: newUser.CreatedAt,
-		UpdatedAt: newUser.UpdatedAt,
-		Email:     newUser.Email,
+	respondWithJson(w, http.StatusCreated, database.User{
+		ID:          newUser.ID,
+		CreatedAt:   newUser.CreatedAt,
+		UpdatedAt:   newUser.UpdatedAt,
+		Email:       newUser.Email,
+		IsChirpyRed: newUser.IsChirpyRed,
 	})
 }
