@@ -1,7 +1,9 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -11,14 +13,14 @@ func (cfg *apiConfig) handlerWebhook(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Event string `json:"event"`
 		Data  struct {
-			UserID string `json:"user_id"`
+			UserID uuid.UUID `json:"user_id"`
 		} `json:"data"`
 	}
 	params := parameters{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&params)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		respondWithError(w, http.StatusInternalServerError, "couldn't decode parameters", err)
 		return
 	}
 
@@ -27,15 +29,13 @@ func (cfg *apiConfig) handlerWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := uuid.Parse(params.Data.UserID)
+	err = cfg.db.UpgradeUserToRed(r.Context(), params.Data.UserID)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	err = cfg.db.UpgradeUserToRed(r.Context(), userID)
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
+		if errors.Is(err, sql.ErrNoRows) {
+			respondWithError(w, http.StatusNotFound, "couldn't find user", err)
+			return
+		}
+		respondWithError(w, http.StatusInternalServerError, "couldn't update user", err)
 		return
 	}
 
