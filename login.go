@@ -6,13 +6,13 @@ import (
 	"time"
 
 	"github.com/lucasrodlima/chirpy/internal/auth"
+	"github.com/lucasrodlima/chirpy/internal/database"
 )
 
 func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Password         string `json:"password"`
-		Email            string `json:"email"`
-		ExpiresInSeconds int    `json:"expires_in_seconds"`
+		Password string `json:"password"`
+		Email    string `json:"email"`
 	}
 
 	defer r.Body.Close()
@@ -35,23 +35,32 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var tokenExpiration time.Duration
-	if params.ExpiresInSeconds == 0 || params.ExpiresInSeconds > 3600 {
-		tokenExpiration = time.Hour
-	} else {
-		tokenExpiration = time.Duration(params.ExpiresInSeconds)
+	token, err := auth.MakeJWT(user.ID, cfg.secret, time.Hour)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "error in authentication process", err)
+		return
 	}
-	token, err := auth.MakeJWT(user.ID, cfg.secret, tokenExpiration)
+	refreshToken, err := auth.MakeRefreshToken()
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "error in authentication process", err)
+		return
+	}
+	_, err = cfg.db.CreateRefreshToken(r.Context(), database.CreateRefreshTokenParams{
+		Token:     refreshToken,
+		UserID:    user.ID,
+		ExpiresAt: time.Now().UTC().Add(time.Hour * 24 * 60),
+	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "error in authentication process", err)
 		return
 	}
 
 	respondWithJson(w, http.StatusOK, userResponse{
-		ID:        user.ID,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-		Email:     user.Email,
-		Token:     token,
+		ID:           user.ID,
+		CreatedAt:    user.CreatedAt,
+		UpdatedAt:    user.UpdatedAt,
+		Email:        user.Email,
+		Token:        token,
+		RefreshToken: refreshToken,
 	})
 }
