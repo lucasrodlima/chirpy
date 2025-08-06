@@ -14,6 +14,11 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 		Email    string `json:"email"`
 	}
+	type response struct {
+		userResponse
+		Token        string `json:"token"`
+		RefreshToken string `json:"refresh_token"`
+	}
 
 	defer r.Body.Close()
 	decoder := json.NewDecoder(r.Body)
@@ -55,11 +60,13 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJson(w, http.StatusOK, userResponse{
-		ID:           user.ID,
-		CreatedAt:    user.CreatedAt,
-		UpdatedAt:    user.UpdatedAt,
-		Email:        user.Email,
+	respondWithJson(w, http.StatusOK, response{
+		userResponse: userResponse{
+			ID:        user.ID,
+			CreatedAt: user.CreatedAt,
+			UpdatedAt: user.UpdatedAt,
+			Email:     user.Email,
+		},
 		Token:        token,
 		RefreshToken: refreshToken,
 	})
